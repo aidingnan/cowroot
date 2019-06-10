@@ -2,17 +2,24 @@
 
 `cowroot` is a boot/rootfs management solution for embedded Linux systems.
 
+A full-fledged Linux distro, such as Debian, could be directly used on an embedded system.  the generation of the uncompressed kernel and init ramdisk for u-boot.
+
 # How it works
 
-`cowroot` differs from most existing solutions in that:
+1. `cowroot` **ALWAYS** boots the system from a ready-only rootfs (a btrfs snapshot). 
 
-1. A full-fledged Linux distro, such as Debian, could be directly used on an embedded system. The only required modification is the adaption of the kernel and initramfs images to a format required by u-boot.
+A read-write copy is created and mounted as the real rootfs right after the kernel starts. This copy is an ephemeral workspace. It is discarded during next boot. This works much like a Docker container and we may say that the rootfs is **immutable**.
 
-2. `cowroot` **ALWAYS** boots the system with a ready-only rootfs volume (snapshot). Then an ephemeral rw rootfs, called the workspace, is created from the ro one right after kernel starts, and the system is pivot_root-ed to it. During reboot, the previous workspace is discarded and a new one is created for the new session. This works the same way that a Docker container starts with an immutable image. 
+2. Switching to a new rootfs **ALWAYS** takes a two-step procedure. The boot loader tries to boot new rootfs and checks the confirmation during next boot. If the Linux system confirms that new rootfs is **bootable**, the boot loader accepts the switching request, otherwise, the request is rejected and the boot loader will boot original rootfs.
 
-3. `cowroot` builds the **mutability** of rootfs on top of the **immutability**. Mutable rootfs may be convenient and useful for developers, hobbyists, as well as power users. The mutability could be achieved by snapshoting a ro copy from the workspace each time the system shuts down. During next boot, the new snapshot is used as the ro rootfs. There are two issues to be taken into account in an implementation: how to deal with unexpected power loss and how to allow users to switch bewteen immutable mode and mutable mode. But they are details.
+Noting that it is the Linux system's responsibility to confirm new rootfs is bootable, and this is a non-trivial job. DON'T simply put a systemd service confirming it when system starts. Even if system starts successfully, there may be issues, such as network interface driver doesn't work properly, leaving user no chance to switch to another rootfs any more.
 
-4. `cowroot` provides a simple protocol between the boot loader (u-boot) and the Linux system to try and confirm a ro rootfs is bootable. Switching to a new rootfs **ALWAYS** takes the steps required by the protocol. 
+As long as the new Linux system does not lie, the boot loader guarantees a usable system.
+
+3. Mutable rootfs may be convenient and useful for developers, hobbyists, as well as power users. `cowroot` builds the **mutability** on top of the **immutability**. The basic idea is to snapshot a ro copy from the rw workspace and then switch to it in next boot, though there are a few detailed issue in implemntation.
+
+`cowroot` could be best understood as a mechanism, not a policy. Most of the real world business, such as the system upgrade/downgrade, factory reset, and recovery mode, are not defined in this layer.  
+
 
 # Dependencies and Requirements
 
@@ -20,9 +27,9 @@
 
 A block-device is required for storing all rootfs snapshots (as the btrfs sub-volume). eMMC is preferred for deployed devices. HDD or SSD may also used if they are available for u-boot.
 
-# Note
 
-Noting that it is the system's responsibility to confirm the ro rootfs is bootable. But this is not a trivial job. Since there may be many possibilities that a rootfs does not function properly. There may be kernel issues, system-level software issues, bad service configurations, and buggy applications. Failing to check those issues and wrongly confirming a bad rootfs to be bootable may cause the user stuck in a system and has no way to switch to another. So making sure the bootability test built into each released rootfs package won't lie.
+
+
 
 Of course there could be a fail-safe ro rootfs to do the recovery or safe-mode job. But this is a policy and not implemented now. It is fairly easy to modify the u-boot script to forcfully boot the fail-safe rootfs when, say, some gpio is hold to required level during boot.
 
