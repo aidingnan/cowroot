@@ -11,9 +11,9 @@ u-boot负责维护和持久化两个env变量：
 
 系统通过[root volume mount point]/boot/system.env文件持久化四个env变量：
 - `system_l`: sub-volume uuid
-- `system_l_opts`: ro || rw
+- `system_l_opts`: ro或rw
 - `system_r`: sub-volume uuid
-- `system_r_opts`: ro || rw
+- `system_r_opts`: ro或rw
 
 u-boot仅会提取其中的`system_l`和`system_r`，另外两个变量为系统自己的策略，与boot协议无关；
 
@@ -31,21 +31,21 @@ u-boot仅会提取其中的`system_l`和`system_r`，另外两个变量为系统
 
 hijacker会将下述env保存到boot.env文件中：
 
-- root_vol：btrfs根卷的uuid
-- ro_subvol：此次启动系统时u-boot提供的ro挂载的子卷的uuid
-- _system_l：启动时的system_l
-- _system_l_opts：启动时的system_l_opts
-- _system_r：启动时的system_r
-- _system_r_opts：启动时的sytem_r_opts
-- loader_l
-- loader_r
-- loader_op
+- `root_vol`：btrfs根卷的uuid
+- `ro_subvol`：此次启动系统时u-boot提供的ro挂载的子卷的uuid
+- `_system_l`：启动时的system_l
+- `_system_l_opts`：启动时的system_l_opts
+- `_system_r`：启动时的system_r
+- `_system_r_opts`：启动时的sytem_r_opts
+- `loader_l`
+- `loader_r`
+- `loader_op`
 
 其中`'_'`前缀的变量是系统启动时system.env中的副本，system.env中的变量值可能在系统启动后被修改，修改的原因包括：
 
-- Hijacker负责的recover，(aa|ab -> aa|aa)
-- 系统comfirm一次切换成功，(ab|ab -> ab|bb)
-- 系统发起了一次切换请求，(aa|aa -> aa|ab, ab|ab -> ab|bb -> ab|bc)
+- Hijacker负责的recover，`aa|ab -> aa|aa`
+- 系统comfirm一次切换成功，`ab|ab -> ab|bb`
+- 系统发起了一次切换请求，`aa|aa -> aa|ab, ab|ab -> ab|bb -> ab|bc`
 
 可以通过比对system_xxxx和_system_xxxx变量推断系统中已经做过的操作。
 
@@ -55,9 +55,9 @@ hijacker会将下述env保存到boot.env文件中：
 
 指u-boot尝试启动新rootfs失败后的恢复。
 
-u-boot看到ab|ab组合时执行恢复，ab|ab -> aa|ab；
+u-boot看到`ab|ab`组合时执行恢复，`ab|ab -> aa|ab`；
 
-hijacker看到aa|ab时判定u-boot做了恢复，hijacker负责在保存了boot.env之后，修改system.env内容至aa|aa；用户空间程序并不会看到aa|ab组合，只会看到aa|aa，需要检查_system_#内容确认是否执行了恢复。
+hijacker看到`aa|ab`时判定u-boot做了恢复，hijacker负责在保存了boot.env之后，修改system.env内容至`aa|aa`；用户空间程序并不会看到`aa|ab`组合，只会看到`aa|aa`，需要检查_system_#内容确认是否执行了恢复。
 
 /sbin目录中提供`cowroot-recover`命令执行该操作；
 
@@ -67,20 +67,20 @@ checkout指发出请求切换至另一个rootfs。
 
 可以发生checkout的组合包括：
 
-- aa|aa (包括恢复成的)
-- ab|bb
-- aa|ab
-- ab|bc
+- `aa|aa` (包括恢复成的)
+- `ab|bb`
+- `aa|ab`
+- `ab|bc`
 
 在后面两个情况里，已经有一次checkout，如果覆盖需要提供额外的操作参数。
 
-在ab|ab组合下禁止checkout。
+在`ab|ab`组合下禁止checkout。
 
 /sbin目录中提供`cowroot-checkout`命令执行该操作；
 
 ### confirm
 
-confirm指当前u-boot正在尝试启动一个新的rootfs，用户空间需更新system.env确认该rootfs可用；迁移过程为ab|ab -> ab|bb，该过程可继续checkout至新的切换rootfs请求，即ab|bb -> ab|bc，其中c可以是a。
+confirm指当前u-boot正在尝试启动一个新的rootfs，用户空间需更新system.env确认该rootfs可用；迁移过程为`ab|ab -> ab|bb`，该过程可继续checkout至新的切换rootfs请求，即`ab|bb -> ab|bc`，其中c可以是a。
 
 /sbin目录中提供`cowroot-confirm`命令执行该操作；
 
@@ -102,8 +102,8 @@ user checkout的意思是，一个checkout/confirm的周期均从外部发起，
 
 (auto) commit只是（应该）发生在关机时的checkout，如果系统已经出现了手工checkout，env状态呈现为：
 
-- aa|ab
-- ab|bc
+- `aa|ab`
+- `ab|bc`
 
 应理解为用户希望切换到指定的rootfs，而不是当前workspace的snapshot，这时有两种设计策略：只snapshot，不checkout，或者既不snapshot，也不checkout；设计上采用了后者。
 
