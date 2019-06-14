@@ -1,4 +1,6 @@
 # Welcome
 
-[变量与命令](envcmd.md)
 
+- [路径](path.md)
+- [环境变量](env-var.md)
+- [命令](command.md)
